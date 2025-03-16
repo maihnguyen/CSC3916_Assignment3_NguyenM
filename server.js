@@ -73,6 +73,25 @@ router.route('/movies')
     })
     .post(authJwtController.isAuthenticated, async (req, res) => {
         return res.status(500).json({ success: false, message: 'POST request not supported' });
+    })
+    .all((req, res) => {
+      //any other HTTP method, returns 405 Method Not Allowed
+        return res.status(405).json({ success: false, message: 'Method not allowed' }); // 405 Method Not Allowed
+    });
+
+router.route('/movies/:movieId')
+    .get(authJwtController.isAuthenticated, async (req, res) => {
+        return res.status(500).json({ success: false, message: 'GET request not supported' });
+    })
+    .put(authJwtController.isAuthenticated, async (req, res) => {
+        return res.status(500).json({ success: false, message: 'PUT request not supported' });
+    })
+    .delete(authJwtController.isAuthenticated, async (req, res) => {
+        return res.status(500).json({ success: false, message: 'DELETE request not supported' });
+    })
+    .all((req, res) => {
+      //any other HTTP method, returns 405 Method Not Allowed
+        return res.status(405).json({ success: false, message: 'Method not allowed' }); // 405 Method Not Allowed
     });
 
 app.use('/', router);
