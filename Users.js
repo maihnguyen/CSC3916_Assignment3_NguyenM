@@ -3,6 +3,7 @@ const Schema = mongoose.Schema;
 const bcrypt = require('bcrypt'); // Use bcrypt, not bcrypt-nodejs
 
 // No need for mongoose.Promise = global.Promise;
+require('dotenv').config();
 
 const connectDB = async () => {
   try {
