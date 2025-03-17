@@ -67,32 +67,108 @@ router.post('/signin', async (req, res) => { // Use async/await
   }
 });
 
-router.route('/movies')
-    .get(authJwtController.isAuthenticated, async (req, res) => {
-        return res.status(500).json({ success: false, message: 'GET request not supported' });
-    })
-    .post(authJwtController.isAuthenticated, async (req, res) => {
-        return res.status(500).json({ success: false, message: 'POST request not supported' });
-    })
-    .all((req, res) => {
-      //any other HTTP method, returns 405 Method Not Allowed
-        return res.status(405).json({ success: false, message: 'Method not allowed' }); // 405 Method Not Allowed
-    });
+// ===== Movies Endpoints =====
 
-router.route('/movies/:movieId')
-    .get(authJwtController.isAuthenticated, async (req, res) => {
-        return res.status(500).json({ success: false, message: 'GET request not supported' });
-    })
-    .put(authJwtController.isAuthenticated, async (req, res) => {
-        return res.status(500).json({ success: false, message: 'PUT request not supported' });
-    })
-    .delete(authJwtController.isAuthenticated, async (req, res) => {
-        return res.status(500).json({ success: false, message: 'DELETE request not supported' });
-    })
-    .all((req, res) => {
-      //any other HTTP method, returns 405 Method Not Allowed
-        return res.status(405).json({ success: false, message: 'Method not allowed' }); // 405 Method Not Allowed
-    });
+// GET /movies - Retrieve all movies
+router.get('/movies', authJwtController.isAuthenticated, async (req, res) => {
+  try {
+    const movies = await Movie.find();
+    res.status(200).json({ success: true, movies });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Server error retrieving movies' });
+  }
+});
+
+// POST /movies - Create a new movie
+router.post('/movies', authJwtController.isAuthenticated, async (req, res) => {
+  try {
+    const { title, releaseDate, genre, actors } = req.body;
+
+    // Validate required fields
+    if (!title || !releaseDate || !genre || !actors || !Array.isArray(actors) || actors.length === 0) {
+      return res.status(400).json({ success: false, message: 'Missing required fields or actors array is empty' });
+    }
+
+    // Validate each actor
+    for (const actor of actors) {
+      if (!actor.actorName || !actor.characterName) {
+        return res.status(400).json({ success: false, message: 'Each actor must have both actorName and characterName' });
+      }
+    }
+
+    const newMovie = new Movie({ title, releaseDate, genre, actors });
+    await newMovie.save();
+    res.status(201).json({ success: true, message: 'Movie created successfully', movie: newMovie });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Server error creating movie' });
+  }
+});
+
+// GET /movies/:movieId - Retrieve a specific movie
+router.get('/movies/:movieId', authJwtController.isAuthenticated, async (req, res) => {
+  try {
+    const movie = await Movie.findById(req.params.movieId);
+    if (!movie) {
+      return res.status(404).json({ success: false, message: 'Movie not found' });
+    }
+    res.status(200).json({ success: true, movie });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Server error retrieving movie' });
+  }
+});
+
+// PUT /movies/:movieId - Update an existing movie
+router.put('/movies/:movieId', authJwtController.isAuthenticated, async (req, res) => {
+  try {
+    const { title, releaseDate, genre, actors } = req.body;
+
+    // If actors is provided, validate it
+    if (actors && (!Array.isArray(actors) || actors.length === 0)) {
+      return res.status(400).json({ success: false, message: 'Actors array must not be empty if provided' });
+    }
+    if (actors) {
+      for (const actor of actors) {
+        if (!actor.actorName || !actor.characterName) {
+          return res.status(400).json({ success: false, message: 'Each actor must have both actorName and characterName' });
+        }
+      }
+    }
+
+    const updatedMovie = await Movie.findByIdAndUpdate(
+      req.params.movieId,
+      { title, releaseDate, genre, actors },
+      { new: true, runValidators: true }
+    );
+    if (!updatedMovie) {
+      return res.status(404).json({ success: false, message: 'Movie not found' });
+    }
+    res.status(200).json({ success: true, message: 'Movie updated successfully', movie: updatedMovie });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Server error updating movie' });
+  }
+});
+
+// DELETE /movies/:movieId - Delete a movie
+router.delete('/movies/:movieId', authJwtController.isAuthenticated, async (req, res) => {
+  try {
+    const deletedMovie = await Movie.findByIdAndDelete(req.params.movieId);
+    if (!deletedMovie) {
+      return res.status(404).json({ success: false, message: 'Movie not found' });
+    }
+    res.status(200).json({ success: true, message: 'Movie deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Server error deleting movie' });
+  }
+});
+
+// If any unsupported HTTP method is used on /movies or /movies/:movieId
+router.all('/movies', (req, res) => {
+  res.status(405).json({ success: false, message: 'Method not allowed' });
+});
+router.all('/movies/:movieId', (req, res) => {
+  res.status(405).json({ success: false, message: 'Method not allowed' });
+});
 
 app.use('/', router);
 
